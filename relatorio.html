@@ -16,12 +16,17 @@
     <h1>📋 Relatório de Vendas</h1>
     <a href="index.html">⬅️ Voltar para o Cadastro</a>
     
+    <button onclick="limparTudo()" style="background: #dc3545; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; margin-bottom: 20px; margin-left: 10px;">
+        ⚠️ Limpar Todo o Histórico
+    </button>
+    
     <table id="tabelaVendas">
         <thead>
             <tr>
                 <th>Data</th>
                 <th>Produto</th>
                 <th>Valor (R$)</th>
+                <th>Ação</th>
             </tr>
         </thead>
         <tbody>
@@ -46,6 +51,11 @@
                         <td>${dataFormatada}</td>
                         <td>${venda.produto}</td>
                         <td>R$ ${venda.valor.toFixed(2)}</td>
+                        <td>
+                            <button onclick="excluirVenda('${venda._id}')" style="color: red; border: none; background: none; cursor: pointer;">
+                                🗑️ Excluir
+                            </button>
+                        </td>
                     </tr>
                 `;
                 corpoTabela.innerHTML += linha;
@@ -53,6 +63,20 @@
             });
 
             document.getElementById('somaTotal').innerText = `Total: R$ ${totalGeral.toFixed(2)}`;
+        }
+
+        async function excluirVenda(id) {
+            if (confirm("Deseja realmente excluir esta venda?")) {
+                await fetch(`/vendas/${id}`, { method: 'DELETE' });
+                carregarVendas(); // Recarrega a lista automaticamente
+            }
+        }
+
+        async function limparTudo() {
+            if (confirm("CUIDADO: Isso vai apagar TODAS as suas vendas. Confirmar?")) {
+                await fetch('/limpar-histórico', { method: 'DELETE' });
+                carregarVendas();
+            }
         }
 
         carregarVendas();

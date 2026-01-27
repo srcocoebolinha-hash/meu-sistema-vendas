@@ -48,6 +48,26 @@ app.get('/vendas', async (req, res) => {
     }
 });
 
+// Rota para deletar uma única venda
+app.delete('/vendas/:id', async (req, res) => {
+    try {
+        await Venda.findByIdAndDelete(req.params.id);
+        res.json({ mensagem: "Venda removida com sucesso!" });
+    } catch (erro) {
+        res.status(500).json({ erro: "Erro ao deletar a venda." });
+    }
+});
+
+// Rota para resetar o banco de dados
+app.delete('/limpar-histórico', async (req, res) => {
+    try {
+        await Venda.deleteMany({});
+        res.json({ mensagem: "Todo o histórico foi apagado!" });
+    } catch (erro) {
+        res.status(500).json({ erro: "Erro ao limpar o histórico." });
+    }
+});
+
 // Servir arquivos estáticos (HTML, CSS, JS)
 app.use(express.static('.'));
 
