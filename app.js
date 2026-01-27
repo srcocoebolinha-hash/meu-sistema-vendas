@@ -12,31 +12,13 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://<hashdothithias>:<Mat
 .catch(err => console.log('❌ Erro ao conectar:', err));
 
 // Schema de Venda
-const saleSchema = new mongoose.Schema({
-  productId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product',
-    required: true,
-  },
-  quantity: {
-    type: Number,
-    required: true,
-  },
-  customerName: {
-    type: String,
-    required: true,
-  },
-  total: {
-    type: Number,
-    required: true,
-  },
-  date: {
-    type: Date,
-    default: Date.now,
-  },
+const vendaSchema = new mongoose.Schema({
+  produto: String,
+  valor: Number,
+  data: { type: Date, default: Date.now }
 });
 
-const Sale = mongoose.model('Sale', saleSchema);
+const Venda = mongoose.model('Venda', vendaSchema);
 
 // Middleware
 app.use(express.json());
@@ -45,11 +27,11 @@ app.use(express.json());
 app.post('/registrar-venda', async (req, res) => {
     try {
         console.log("Dados recebidos:", req.body); // Isso ajuda a ver o erro no log
-        const novaVenda = new Sale(req.body);
+        const novaVenda = new Venda(req.body);
         await novaVenda.save();
         
         // ESSA LINHA É O QUE FAZ O "PROCESSANDO" PARAR
-        return res.status(201).json({ mensagem: "Venda realizada com sucesso!" });
+        return res.status(201).json({ mensagem: "Venda salva com sucesso!" });
     } catch (erro) {
         console.error("Erro ao salvar:", erro);
         return res.status(500).json({ erro: "Erro interno no servidor", detalhe: erro.message });
