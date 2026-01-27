@@ -15,6 +15,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://<hashdothithias>:<Mat
 const vendaSchema = new mongoose.Schema({
   produto: String,
   valor: Number,
+  formaPagamento: String, // Novo campo!
   data: { type: Date, default: Date.now }
 });
 

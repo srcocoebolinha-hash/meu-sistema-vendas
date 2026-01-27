@@ -41,6 +41,7 @@
                         <th>Data</th>
                         <th>Produto</th>
                         <th>Valor</th>
+                        <th>Forma de Pagamento</th>
                         <th class="text-center">Ações</th>
                     </tr>
                 </thead>
@@ -83,6 +84,7 @@
                     <td>${new Date(v.data).toLocaleDateString('pt-BR')}</td>
                     <td><strong>${v.produto}</strong></td>
                     <td>R$ ${v.valor.toFixed(2)}</td>
+                    <td><span class="badge bg-info text-dark">${v.formaPagamento || 'Não inf.'}</span></td>
                     <td class="text-center">
                         <button onclick="excluirVenda('${v._id}')" class="btn btn-sm btn-outline-danger">🗑️</button>
                     </td>
