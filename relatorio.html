@@ -36,6 +36,27 @@
     <div class="total" id="somaTotal">Total: R$ 0,00</div>
 
     <script>
+        // O guarda da página
+        async function verificarAcesso() {
+            const senhaDigitada = prompt("Digite a senha para acessar o relatório:");
+            
+            // Vamos perguntar ao servidor se a senha está certa
+            const resposta = await fetch('/verificar-senha', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ senha: senhaDigitada })
+            });
+
+            const resultado = await resposta.json();
+
+            if (!resultado.autorizado) {
+                alert("Senha incorreta! Acesso negado.");
+                window.location.href = "index.html"; // Manda de volta pro início
+            } else {
+                carregarVendas(); // Se estiver certo, carrega os dados
+            }
+        }
+
         async function carregarVendas() {
             const resposta = await fetch('/vendas');
             const vendas = await resposta.json();
@@ -79,7 +100,8 @@
             }
         }
 
-        carregarVendas();
+        // Chame a verificação ao abrir a página
+        verificarAcesso();
     </script>
 </body>
 </html>

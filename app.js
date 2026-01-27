@@ -68,6 +68,18 @@ app.delete('/limpar-histórico', async (req, res) => {
     }
 });
 
+// Rota para verificar senha do relatório
+app.post('/verificar-senha', (req, res) => {
+    const { senha } = req.body;
+    const senhaMestra = process.env.SENHA_RELATORIO;
+
+    if (senha === senhaMestra) {
+        res.json({ autorizado: true });
+    } else {
+        res.json({ autorizado: false });
+    }
+});
+
 // Servir arquivos estáticos (HTML, CSS, JS)
 app.use(express.static('.'));
 
