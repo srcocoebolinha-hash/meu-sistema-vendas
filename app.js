@@ -38,6 +38,16 @@ app.post('/registrar-venda', async (req, res) => {
     }
 });
 
+// Rota para buscar todas as vendas
+app.get('/vendas', async (req, res) => {
+    try {
+        const vendas = await Venda.find().sort({ data: -1 }); // Traz as mais recentes primeiro
+        res.json(vendas);
+    } catch (erro) {
+        res.status(500).json({ erro: "Erro ao buscar vendas" });
+    }
+});
+
 // Servir arquivos estáticos (HTML, CSS, JS)
 app.use(express.static('.'));
 

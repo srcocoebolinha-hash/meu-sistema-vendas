@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório de Vendas</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #007bff; color: white; }
+        tr:hover { background-color: #f1f1f1; }
+        .total { font-size: 1.2em; font-weight: bold; margin-top: 20px; color: #28a745; }
+    </style>
+</head>
+<body>
+    <h1>📋 Relatório de Vendas</h1>
+    <a href="index.html">⬅️ Voltar para o Cadastro</a>
+    
+    <table id="tabelaVendas">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Produto</th>
+                <th>Valor (R$)</th>
+            </tr>
+        </thead>
+        <tbody>
+            </tbody>
+    </table>
+
+    <div class="total" id="somaTotal">Total: R$ 0,00</div>
+
+    <script>
+        async function carregarVendas() {
+            const resposta = await fetch('/vendas');
+            const vendas = await resposta.json();
+            const corpoTabela = document.querySelector('#tabelaVendas tbody');
+            let totalGeral = 0;
+
+            corpoTabela.innerHTML = ''; // Limpa a tabela
+
+            vendas.forEach(venda => {
+                const dataFormatada = new Date(venda.data).toLocaleDateString('pt-BR');
+                const linha = `
+                    <tr>
+                        <td>${dataFormatada}</td>
+                        <td>${venda.produto}</td>
+                        <td>R$ ${venda.valor.toFixed(2)}</td>
+                    </tr>
+                `;
+                corpoTabela.innerHTML += linha;
+                totalGeral += venda.valor;
+            });
+
+            document.getElementById('somaTotal').innerText = `Total: R$ ${totalGeral.toFixed(2)}`;
+        }
+
+        carregarVendas();
+    </script>
+</body>
+</html>
