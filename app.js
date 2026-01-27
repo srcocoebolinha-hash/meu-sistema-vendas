@@ -2,7 +2,6 @@ const express = require('express');
 const fs = require('fs');
 const mongoose = require('mongoose');
 const app = express();
-const porta = process.env.PORT || 3000;
 
 // Conexão com MongoDB Atlas
 mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://<hashdothithias>:<Mat142_allowed>@<hashdomathias>.mongodb.net/?retryWrites=true&w=majority', {
@@ -39,37 +38,32 @@ const saleSchema = new mongoose.Schema({
 
 const Sale = mongoose.model('Sale', saleSchema);
 
-// Exemplo de uso - Criar uma nova venda
-const newSale = new Sale({
-  productId: '648e8a8d4c2c8a2c8a8d4c2c',
-  quantity: 2,
-  customerName: 'John Doe',
-  total: 10.99,
-});
-
-newSale.save((err, sale) => {
-  if (err) {
-    console.error(err);
-  } else {
-    console.log(sale);
-  }
-});
-
-// Permite que o servidor entenda dados enviados pelo site
+// Middleware
 app.use(express.json());
-app.use(express.static('.')); // Serve o seu index.html automaticamente
 
 // ROTA: O site vai "chamar" este endereço para salvar a venda
-app.post('/registrar-venda', (req, res) => {
-    const venda = req.body;
-    const linha = `Produto: ${venda.produto} | Valor: R$${venda.valor} | Data: ${new Date().toLocaleDateString()}\n`;
-
-    fs.appendFile('vendas.txt', linha, (err) => {
-        if (err) return res.status(500).send("Erro no servidor");
-        res.send("✅ Venda salva com sucesso!");
-    });
+app.post('/registrar-venda', async (req, res) => {
+    try {
+        const venda = req.body;
+        const novaVenda = new Sale({
+            productId: venda.productId,
+            quantity: venda.quantity,
+            customerName: venda.customerName,
+            total: venda.total
+        });
+        
+        await novaVenda.save();
+        res.status(200).send("✅ Venda salva com sucesso!");
+    } catch (err) {
+        res.status(500).send("❌ Erro ao salvar venda no banco");
+    }
 });
 
+// Servir arquivos estáticos (HTML, CSS, JS)
+app.use(express.static('.'));
+
+// Iniciar servidor
+const porta = process.env.PORT || 3000;
 app.listen(porta, () => {
     console.log(`Servidor rodando em http://localhost:${porta}`);
 });
