@@ -1,0 +1,9 @@
+Produto: Monitor Gamer | Valor: R$1200 | Data: 26/01/2026
+Produto: Monitor Gamer | Valor: R$1200 | Data: 26/01/2026
+Produto: Monitor Gamer | Valor: R$1200 | Data: 26/01/2026
+Produto: Monitor Gamer | Valor: R$1200 | Data: 26/01/2026
+Produto: Notebook | Valor: R$3000 | Data: 26/01/2026
+Produto: Monitor | Valor: R$1000 | Data: 26/01/2026
+Produto: Notebook | Valor: R$500 | Data: 26/01/2026
+Produto: Celular | Valor: R$100 | Data: 26/01/2026
+Produto: arroz | Valor: R$1 | Data: 26/01/2026
