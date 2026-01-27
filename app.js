@@ -44,18 +44,15 @@ app.use(express.json());
 // ROTA: O site vai "chamar" este endereço para salvar a venda
 app.post('/registrar-venda', async (req, res) => {
     try {
-        const venda = req.body;
-        const novaVenda = new Sale({
-            productId: venda.productId,
-            quantity: venda.quantity,
-            customerName: venda.customerName,
-            total: venda.total
-        });
-        
+        console.log("Dados recebidos:", req.body); // Isso ajuda a ver o erro no log
+        const novaVenda = new Sale(req.body);
         await novaVenda.save();
-        res.status(200).send("✅ Venda salva com sucesso!");
-    } catch (err) {
-        res.status(500).send("❌ Erro ao salvar venda no banco");
+        
+        // ESSA LINHA É O QUE FAZ O "PROCESSANDO" PARAR
+        return res.status(201).json({ mensagem: "Venda realizada com sucesso!" });
+    } catch (erro) {
+        console.error("Erro ao salvar:", erro);
+        return res.status(500).json({ erro: "Erro interno no servidor", detalhe: erro.message });
     }
 });
 
