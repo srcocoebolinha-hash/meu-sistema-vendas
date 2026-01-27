@@ -64,6 +64,6 @@ app.use(express.static('.'));
 
 // Iniciar servidor
 const porta = process.env.PORT || 3000;
-app.listen(porta, () => {
-    console.log(`Servidor rodando em http://localhost:${porta}`);
+app.listen(porta, '0.0.0.0', () => {
+    console.log(`Servidor rodando na porta ${porta}`);
 });
