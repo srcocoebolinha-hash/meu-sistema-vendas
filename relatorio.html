@@ -226,3 +226,5 @@
         // Atualiza o gráfico
         atualizarGrafico(pix, dinheiro, cartao);
     }
+        const clienteFiltro = document.getElementById('filtroCliente').value;
+        const vendasFiltradas = todasAsVendas.filter(v => clienteFiltro === "" || v.cliente === clienteFiltro );
