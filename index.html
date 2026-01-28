@@ -6,7 +6,7 @@
     <title>Sistema de Vendas Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
     <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-t-4 border-blue-600">
         <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Nova Venda</h1>
@@ -50,82 +50,93 @@
         <div id="status" class="mt-4 text-center text-sm font-semibold"></div>
 
         <div class="mt-8">
-            <h2 class="text-lg font-bold text-gray-800 mb-4">Últimas 3 Vendas</h2>
-            <table class="w-full border-collapse">
-                <thead>
-                    <tr class="bg-gray-200">
-                        <th class="border border-gray-300 p-3 text-left font-semibold text-gray-700">Produto</th>
-                        <th class="border border-gray-300 p-3 text-right font-semibold text-gray-700">Valor</th>
-                    </tr>
-                </thead>
-                <tbody id="historicoVendas">
-                    <tr class="bg-gray-50">
-                        <td colspan="2" class="border border-gray-300 p-3 text-center text-gray-500">Nenhuma venda registrada</td>
-                    </tr>
-                </tbody>
-            </table>
+            <h2 class="text-lg font-bold text-gray-800 mb-4">Últimas Vendas (Hoje)</h2>
+            <div class="overflow-hidden rounded-lg border border-gray-200">
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="p-3 text-left font-semibold text-gray-700">Produto</th>
+                            <th class="p-3 text-right font-semibold text-gray-700">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historicoVendas">
+                        <tr class="bg-gray-50 text-center">
+                            <td colspan="2" class="p-3 text-gray-500">Carregando histórico...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <script>
-        let vendas = JSON.parse(localStorage.getItem('vendas')) || [];
-
-        // Carregar clientes ao abrir a página
+        // 1. Carregar lista de clientes para o SELECT
         async function popularClientes() {
-            const res = await fetch('/clientes');
-            const clientes = await res.json();
-            const select = document.getElementById('clienteSelecionado');
-            
-            select.innerHTML = '<option value="">Selecione um cliente...</option>';
-            
-            clientes.forEach(cliente => {
-                const option = document.createElement('option');
-                option.value = cliente.nome; // Ou cliente._id se quiser ser mais técnico
-                option.textContent = cliente.nome;
-                select.appendChild(option);
-            });
-        }
-
-        function atualizarHistorico() {
-            const historico = document.getElementById('historicoVendas');
-            
-            if (vendas.length === 0) {
-                historico.innerHTML = '<tr class="bg-gray-50"><td colspan="2" class="border border-gray-300 p-3 text-center text-gray-500">Nenhuma venda registrada</td></tr>';
-                return;
+            try {
+                const res = await fetch('/clientes');
+                const clientes = await res.json();
+                const select = document.getElementById('clienteSelecionado');
+                
+                select.innerHTML = '<option value="">Selecione um cliente...</option>';
+                clientes.forEach(cliente => {
+                    const option = document.createElement('option');
+                    option.value = cliente.nome;
+                    option.textContent = cliente.nome;
+                    select.appendChild(option);
+                });
+            } catch (err) {
+                console.error("Erro ao carregar clientes:", err);
             }
-
-            const ultimasVendas = vendas.slice(-3).reverse();
-            const cores = ['bg-blue-50', 'bg-green-50', 'bg-yellow-50'];
-
-            historico.innerHTML = ultimasVendas.map((venda, index) => `
-                <tr class="${cores[index]}">
-                    <td class="border border-gray-300 p-3 text-gray-800">${venda.produto}</td>
-                    <td class="border border-gray-300 p-3 text-right text-gray-800 font-semibold">R$ ${parseFloat(venda.valor).toFixed(2)}</td>
-                </tr>
-            `).join('');
         }
 
+        // 2. Buscar as últimas vendas direto do BANCO (MongoDB)
+        async function atualizarHistorico() {
+            try {
+                const res = await fetch('/vendas');
+                const vendas = await res.json();
+                const historico = document.getElementById('historicoVendas');
+                
+                if (!vendas || vendas.length === 0) {
+                    historico.innerHTML = '<tr><td colspan="2" class="p-3 text-center text-gray-500">Nenhuma venda registrada</td></tr>';
+                    return;
+                }
+
+                // Pegar apenas as últimas 3
+                const ultimasVendas = vendas.slice(0, 3);
+                historico.innerHTML = ultimasVendas.map(v => `
+                    <tr class="border-t border-gray-100">
+                        <td class="p-3 text-gray-800">${v.produto} <br><small class="text-gray-400">${v.cliente || 'S/ Cliente'}</small></td>
+                        <td class="p-3 text-right text-gray-800 font-semibold">R$ ${parseFloat(v.valor).toFixed(2)}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error("Erro ao atualizar histórico:", err);
+            }
+        }
+
+        // 3. Função principal de VENDA
         async function vender() {
-            const produtoInput = document.getElementById('produto');
-            const valorInput = document.getElementById('valor');
-            const formaPagamentoInput = document.getElementById('formaPagamento');
-            const clienteSelect = document.getElementById('clienteSelecionado');
             const status = document.getElementById('status');
+            const produto = document.getElementById('produto').value;
+            const valor = document.getElementById('valor').value;
+            const cliente = document.getElementById('clienteSelecionado').value;
+            const formaPagamento = document.getElementById('formaPagamento').value;
 
-            const dadosVenda = {
-                produto: produtoInput.value,
-                valor: valorInput.value,
-                formaPagamento: formaPagamentoInput.value,
-                clienteId: clienteSelect.value
-            };
-
-            if(!dadosVenda.produto || !dadosVenda.valor) {
-                status.innerText = "❌ Preencha todos os campos!";
+            if(!produto || !valor || !cliente) {
+                status.innerText = "❌ Selecione o cliente, produto e valor!";
                 status.className = "mt-4 text-center text-red-600";
                 return;
             }
 
             status.innerText = "⏳ Processando...";
+            status.className = "mt-4 text-center text-blue-600";
+
+            const dadosVenda = {
+                produto: produto,
+                valor: parseFloat(valor),
+                formaPagamento: formaPagamento,
+                cliente: cliente // AQUI ESTÁ O VÍNCULO CORRETO
+            };
 
             try {
                 const resposta = await fetch('/registrar-venda', {
@@ -138,21 +149,26 @@
                     status.innerText = "✅ Venda registrada com sucesso!";
                     status.className = "mt-4 text-center text-green-600";
                     
-                    vendas.push(dadosVenda);
-                    localStorage.setItem('vendas', JSON.stringify(vendas));
-                    atualizarHistorico();
+                    // Limpar campos
+                    document.getElementById('produto').value = "";
+                    document.getElementById('valor').value = "";
+                    document.getElementById('clienteSelecionado').value = "";
                     
-                    produtoInput.value = "";
-                    valorInput.value = "";
-                    formaPagamentoInput.value = "Pix";
+                    // Atualizar a listinha na hora
+                    atualizarHistorico();
+                } else {
+                    status.innerText = "❌ Erro ao salvar no servidor.";
+                    status.className = "mt-4 text-center text-red-600";
                 }
             } catch (err) {
                 status.innerText = "❌ Erro ao conectar com servidor";
+                status.className = "mt-4 text-center text-red-600";
             }
         }
 
-        atualizarHistorico();
+        // Inicialização
         popularClientes();
+        atualizarHistorico();
     </script>
 </body>
 </html>
