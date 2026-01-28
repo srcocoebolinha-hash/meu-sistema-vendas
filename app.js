@@ -1,112 +1,97 @@
 const express = require('express');
-const fs = require('fs');
 const mongoose = require('mongoose');
 const app = express();
 
+// Middleware
+app.use(express.json());
+app.use(express.static('.'));
+
 // Conexão com MongoDB Atlas
-mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://<hashdothithias>:<Mat142_allowed>@<hashdomathias>.mongodb.net/?retryWrites=true&w=majority', {
+mongoose.connect(process.env.MONGODB_URI || 'sua_string_aqui', {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })
 .then(() => console.log('✅ Conectado ao MongoDB Atlas'))
 .catch(err => console.log('❌ Erro ao conectar:', err));
 
-// Schema de Venda
+// --- SCHEMAS ---
+
+// Schema de Venda (AGORA COM CLIENTE)
 const vendaSchema = new mongoose.Schema({
   produto: String,
   valor: Number,
-  formaPagamento: String, // Novo campo!
+  cliente: String, // Campo essencial para o vínculo!
+  formaPagamento: String,
   data: { type: Date, default: Date.now }
 });
-
 const Venda = mongoose.model('Venda', vendaSchema);
 
 // Schema de Cliente
 const clienteSchema = new mongoose.Schema({
   nome: { type: String, required: true },
-  whatsapp: { type: String, unique: true, required: true }, // Trava aqui!
+  whatsapp: { type: String, unique: true, required: true },
   email: String,
   dataCadastro: { type: Date, default: Date.now }
 });
-
 const Cliente = mongoose.model('Cliente', clienteSchema);
 
-// Middleware
-app.use(express.json());
+// --- ROTAS DE VENDAS ---
 
-// ROTA: O site vai "chamar" este endereço para salvar a venda
+// Rota Unificada para Registrar Venda
 app.post('/registrar-venda', async (req, res) => {
     try {
-        console.log("Dados recebidos:", req.body); // Isso ajuda a ver o erro no log
-        const novaVenda = new Venda(req.body);
+        console.log("Dados recebidos na venda:", req.body);
+        const novaVenda = new Venda(req.body); // Aqui ele pega o campo 'cliente' do JSON
         await novaVenda.save();
-        
-        // ESSA LINHA É O QUE FAZ O "PROCESSANDO" PARAR
         return res.status(201).json({ mensagem: "Venda salva com sucesso!" });
     } catch (erro) {
-        console.error("Erro ao salvar:", erro);
-        return res.status(500).json({ erro: "Erro interno no servidor", detalhe: erro.message });
+        console.error("Erro ao salvar venda:", erro);
+        return res.status(500).json({ erro: "Erro ao salvar venda" });
     }
 });
 
-// Rota para buscar todas as vendas
 app.get('/vendas', async (req, res) => {
     try {
-        const vendas = await Venda.find().sort({ data: -1 }); // Traz as mais recentes primeiro
+        const vendas = await Venda.find().sort({ data: -1 });
         res.json(vendas);
     } catch (erro) {
         res.status(500).json({ erro: "Erro ao buscar vendas" });
     }
 });
 
-// Rota para deletar uma única venda
 app.delete('/vendas/:id', async (req, res) => {
     try {
         await Venda.findByIdAndDelete(req.params.id);
-        res.json({ mensagem: "Venda removida com sucesso!" });
+        res.json({ mensagem: "Venda removida!" });
     } catch (erro) {
-        res.status(500).json({ erro: "Erro ao deletar a venda." });
+        res.status(500).json({ erro: "Erro ao deletar" });
     }
 });
 
-// Rota para resetar o banco de dados
 app.delete('/limpar-histórico', async (req, res) => {
     try {
         await Venda.deleteMany({});
-        res.json({ mensagem: "Todo o histórico foi apagado!" });
+        res.json({ mensagem: "Histórico limpo!" });
     } catch (erro) {
-        res.status(500).json({ erro: "Erro ao limpar o histórico." });
+        res.status(500).json({ erro: "Erro ao limpar" });
     }
 });
 
-// Rota para verificar senha do relatório
-app.post('/verificar-senha', (req, res) => {
-    const { senha } = req.body;
-    const senhaMestra = process.env.SENHA_RELATORIO;
+// --- ROTAS DE CLIENTES ---
 
-    if (senha === senhaMestra) {
-        res.json({ autorizado: true });
-    } else {
-        res.json({ autorizado: false });
-    }
-});
-
-// Cadastrar novo cliente
 app.post('/clientes', async (req, res) => {
     try {
         const novoCliente = new Cliente(req.body);
         await novoCliente.save();
         res.status(201).json({ mensagem: "Cliente cadastrado!" });
     } catch (erro) {
-        // Código 11000 no MongoDB significa "Duplicado"
         if (erro.code === 11000) {
-            return res.status(400).json({ erro: "Este WhatsApp já está cadastrado para outro cliente." });
+            return res.status(400).json({ erro: "Este WhatsApp já existe!" });
         }
         res.status(500).json({ erro: "Erro ao cadastrar cliente" });
     }
 });
 
-// Listar todos os clientes
 app.get('/clientes', async (req, res) => {
     try {
         const clientes = await Cliente.find().sort({ nome: 1 });
@@ -116,11 +101,19 @@ app.get('/clientes', async (req, res) => {
     }
 });
 
-// Servir arquivos estáticos (HTML, CSS, JS)
-app.use(express.static('.'));
+// --- SEGURANÇA ---
+
+app.post('/verificar-senha', (req, res) => {
+    const { senha } = req.body;
+    if (senha === process.env.SENHA_RELATORIO) {
+        res.json({ autorizado: true });
+    } else {
+        res.json({ autorizado: false });
+    }
+});
 
 // Iniciar servidor
 const porta = process.env.PORT || 3000;
 app.listen(porta, '0.0.0.0', () => {
-    console.log(`Servidor rodando na porta ${porta}`);
+    console.log(`🚀 Servidor rodando na porta ${porta}`);
 });
