@@ -23,8 +23,8 @@ const Venda = mongoose.model('Venda', vendaSchema);
 
 // Schema de Cliente
 const clienteSchema = new mongoose.Schema({
-  nome: String,
-  whatsapp: String,
+  nome: { type: String, required: true },
+  whatsapp: { type: String, unique: true, required: true }, // Trava aqui!
   email: String,
   dataCadastro: { type: Date, default: Date.now }
 });
@@ -98,6 +98,10 @@ app.post('/clientes', async (req, res) => {
         await novoCliente.save();
         res.status(201).json({ mensagem: "Cliente cadastrado!" });
     } catch (erro) {
+        // Código 11000 no MongoDB significa "Duplicado"
+        if (erro.code === 11000) {
+            return res.status(400).json({ erro: "Este WhatsApp já está cadastrado para outro cliente." });
+        }
         res.status(500).json({ erro: "Erro ao cadastrar cliente" });
     }
 });
