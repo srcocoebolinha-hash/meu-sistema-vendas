@@ -11,7 +11,6 @@
         .card { border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 12px; }
         .table thead { background-color: #007bff; color: white; }
         .btn-danger { border-radius: 8px; }
-        .total-box { background: #28a745; color: white; padding: 20px; border-radius: 12px; text-align: center; }
     </style>
 </head>
 <body>
@@ -22,6 +21,17 @@
         <div>
             <a href="index.html" class="btn btn-outline-primary me-2">Nova Venda</a>
             <button onclick="limparTudo()" class="btn btn-danger">Limpar Tudo</button>
+        </div>
+    </div>
+
+    <div class="card p-3 mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <label class="fw-bold">Filtrar por Cliente:</label>
+                <select id="clienteSelecionado" class="form-select" onchange="carregarVendas()">
+                    <option value="">Todos os Clientes</option>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -60,6 +70,7 @@
                         <thead>
                             <tr>
                                 <th>Data</th>
+                                <th>Cliente</th>
                                 <th>Produto</th>
                                 <th>Valor</th>
                                 <th>Pagamento</th>
@@ -71,7 +82,6 @@
                 </div>
             </div>
         </div>
-
         <div class="col-md-4">
             <div class="card p-4 h-100 text-center">
                 <h5>Distribuição de Vendas</h5>
@@ -82,7 +92,6 @@
 </div>
 
 <script>
-    // Variável global para não duplicar o gráfico ao recarregar
     let meuGrafico;
 
     async function verificarEAcesso() {
@@ -95,33 +104,51 @@
         const data = await res.json();
         
         if (data.autorizado) {
-            carregarVendas();
+            await popularFiltroClientes(); // Carrega os nomes primeiro
+            await carregarVendas();         // Depois as vendas
         } else {
             alert("Acesso Negado!");
             window.location.href = 'index.html';
         }
     }
 
+    async function popularFiltroClientes() {
+        try {
+            const res = await fetch('/clientes');
+            const clientes = await res.json();
+            const select = document.getElementById('clienteSelecionado');
+            select.innerHTML = `<option value="">Todos os Clientes</option>`;
+            clientes.forEach(cliente => {
+                const option = document.createElement('option');
+                option.value = cliente.nome;
+                option.textContent = cliente.nome;
+                select.appendChild(option);
+            });
+        } catch (e) { console.error("Erro ao carregar clientes"); }
+    }
+
     async function carregarVendas() {
         const res = await fetch('/vendas');
         const vendas = await res.json();
+        const filtro = document.getElementById('clienteSelecionado').value;
         const lista = document.getElementById('listaVendas');
         
-        // Variáveis para somar cada tipo
-        let totalGeral = 0, pix = 0, dinheiro = 0, cartao = 0;
+        // Aplica o Filtro
+        const vendasFiltradas = filtro === "" ? vendas : vendas.filter(v => v.cliente === filtro);
 
+        let totalGeral = 0, pix = 0, dinheiro = 0, cartao = 0;
         lista.innerHTML = '';
-        vendas.forEach(v => {
+
+        vendasFiltradas.forEach(v => {
             totalGeral += v.valor;
-            
-            // Soma por categoria (agrupando crédito e débito em 'Cartão')
             if (v.formaPagamento === 'Pix') pix += v.valor;
             else if (v.formaPagamento === 'Dinheiro') dinheiro += v.valor;
-            else if (v.formaPagamento.includes('Cartão')) cartao += v.valor;
+            else if (v.formaPagamento && v.formaPagamento.includes('Cartão')) cartao += v.valor;
 
             lista.innerHTML += `
                 <tr>
                     <td>${new Date(v.data).toLocaleDateString('pt-BR')}</td>
+                    <td>${v.cliente || 'S/ Cliente'}</td>
                     <td><strong>${v.produto}</strong></td>
                     <td>R$ ${v.valor.toFixed(2)}</td>
                     <td><span class="badge bg-secondary">${v.formaPagamento || 'Pix'}</span></td>
@@ -132,38 +159,27 @@
             `;
         });
 
-        // Atualiza os cards na tela
         document.getElementById('totalPix').innerText = `R$ ${pix.toFixed(2)}`;
         document.getElementById('totalDinheiro').innerText = `R$ ${dinheiro.toFixed(2)}`;
         document.getElementById('totalCartao').innerText = `R$ ${cartao.toFixed(2)}`;
         document.getElementById('somaTotal').innerText = `R$ ${totalGeral.toFixed(2)}`;
         
-        // Atualiza o gráfico
         atualizarGrafico(pix, dinheiro, cartao);
     }
 
     function atualizarGrafico(pix, dinheiro, cartao) {
         const ctx = document.getElementById('graficoVendas').getContext('2d');
-        
-        // Se o gráfico já existir, destrói para criar um novo com dados frescos
         if (meuGrafico) meuGrafico.destroy();
-
         meuGrafico = new Chart(ctx, {
-            type: 'doughnut', // Gráfico estilo rosca (mais moderno que pizza)
+            type: 'doughnut',
             data: {
                 labels: ['Pix', 'Dinheiro', 'Cartão'],
                 datasets: [{
                     data: [pix, dinheiro, cartao],
-                    backgroundColor: ['#007bff', '#28a745', '#ffc107'],
-                    hoverOffset: 10
+                    backgroundColor: ['#007bff', '#28a745', '#ffc107']
                 }]
             },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'bottom' }
-                }
-            }
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
         });
     }
 
@@ -185,94 +201,3 @@
 </script>
 </body>
 </html>
-
-<script>
-    const select = document.getElementById('clienteSelecionado');
-    select.addEventListener('change', carregarVendas);
-
-    async function carregarVendas() {
-        const clienteSelecionado = select.value;
-        const res = await fetch('/vendas');
-        const vendas = await res.json();
-        const lista = document.getElementById('listaVendas');
-        lista.innerHTML = '';
-
-        const vendasFiltradas = vendas.filter(v => v.cliente === clienteSelecionado);
-
-        vendasFiltradas.forEach(v => {
-            lista.innerHTML += `
-                <tr>
-                    <td>${new Date(v.data).toLocaleDateString('pt-BR')}</td>
-                    <td><strong>${v.produto}</strong></td>
-                    <td>R$ ${v.valor.toFixed(2)}</td>
-                    <td><span class="badge bg-secondary">${v.formaPagamento || 'Pix'}</span></td>
-                    <td class="text-center">
-                        <button onclick="excluirVenda('${v._id}')" class="btn btn-sm btn-outline-danger"> </button>
-                    </td>
-                </tr>
-            `;
-        });
-
-        const pix = vendasFiltradas.reduce((acumulador, v) => v.formaPagamento === 'Pix' ? acumulador + v.valor : acumulador, 0);
-        const dinheiro = vendasFiltradas.reduce((acumulador, v) => v.formaPagamento === 'Dinheiro' ? acumulador + v.valor : acumulador, 0);
-        const cartao = vendasFiltradas.reduce((acumulador, v) => v.formaPagamento.includes('Cartão') ? acumulador + v.valor : acumulador, 0);
-
-        // Atualiza os cards na tela
-        document.getElementById('totalPix').innerText = `R$ ${pix.toFixed(2)}`;
-        document.getElementById('totalDinheiro').innerText = `R$ ${dinheiro.toFixed(2)}`;
-        document.getElementById('totalCartao').innerText = `R$ ${cartao.toFixed(2)}`;
-        document.getElementById('somaTotal').innerText = `R$ ${vendasFiltradas.reduce((acumulador, v) => acumulador + v.valor, 0).toFixed(2)}`;
-
-        // Atualiza o gráfico
-        atualizarGrafico(pix, dinheiro, cartao);
-    }
-        const clienteFiltro = document.getElementById('filtroCliente').value;
-        const vendasFiltradas = todasAsVendas.filter(v => clienteFiltro === "" || v.cliente === clienteFiltro );
-    async function popularFiltroClientes() {
-        const res = await fetch('/clientes');
-        const clientes = await res.json();
-        const select = document.getElementById('clienteSelecionado');
-        select.innerHTML = `<option value="">Todos os Clientes</option>`;
-        clientes.forEach(cliente => {
-            const option = document.createElement('option');
-            option.value = cliente.nome;
-            option.textContent = cliente.nome;
-            select.appendChild(option);
-        });
-    }
-
-    async function carregarVendas() {
-        const clienteSelecionado = document.getElementById('clienteSelecionado').value;
-        const res = await fetch('/vendas');
-        const vendas = await res.json();
-        const lista = document.getElementById('listaVendas');
-        lista.innerHTML = '';
-        
-        const vendasFiltradas = clienteSelecionado === '' || clienteSelecionado === 'Todos' ? vendas : vendas.filter(v => v.cliente === clienteSelecionado);
-
-        vendasFiltradas.forEach(v => {
-            lista.innerHTML += `
-                <tr>
-                    <td>${new Date(v.data).toLocaleDateString('pt-BR')}</td>
-                    <td><strong>${v.produto}</strong></td>
-                    <td>R$ ${v.valor.toFixed(2)}</td>
-                    <td><span class="badge bg-secondary">${v.formaPagamento || 'Pix'}</span></td>
-                    <td class="text-center">
-                        <button onclick="excluirVenda('${v._id}')" class="btn btn-sm btn-outline-danger"> </button>
-                    </td>
-                </tr>
-            `;
-        });
-
-        // Atualiza os cards na tela
-        const pix = vendasFiltradas.reduce((acumulador, v) => v.formaPagamento === 'Pix' ? acumulador + v.valor : acumulador, 0);
-        const dinheiro = vendasFiltradas.reduce((acumulador, v) => v.formaPagamento === 'Dinheiro' ? acumulador + v.valor : acumulador, 0);
-        const cartao = vendasFiltradas.reduce((acumulador, v) => v.formaPagamento.includes('Cartão') ? acumulador + v.valor : acumulador, 0);
-
-        document.getElementById('totalPix').innerText = `R$ ${pix.toFixed(2)}`;
-        document.getElementById('totalDinheiro').innerText = `R$ ${dinheiro.toFixed(2)}`;
-        document.getElementById('totalCartao').innerText = `R$ ${cartao.toFixed(2)}`;
-        document.getElementById('somaTotal').innerText = `R$ ${vendasFiltradas.reduce((acumulador, v) => acumulador + v.valor, 0).toFixed(2)}`;
-
-        // Atualiza o gráfico
-        atualizarGrafico(pix, dinheiro, cartao);
