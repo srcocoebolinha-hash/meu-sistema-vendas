@@ -228,3 +228,51 @@
     }
         const clienteFiltro = document.getElementById('filtroCliente').value;
         const vendasFiltradas = todasAsVendas.filter(v => clienteFiltro === "" || v.cliente === clienteFiltro );
+    async function popularFiltroClientes() {
+        const res = await fetch('/clientes');
+        const clientes = await res.json();
+        const select = document.getElementById('clienteSelecionado');
+        select.innerHTML = `<option value="">Todos os Clientes</option>`;
+        clientes.forEach(cliente => {
+            const option = document.createElement('option');
+            option.value = cliente.nome;
+            option.textContent = cliente.nome;
+            select.appendChild(option);
+        });
+    }
+
+    async function carregarVendas() {
+        const clienteSelecionado = document.getElementById('clienteSelecionado').value;
+        const res = await fetch('/vendas');
+        const vendas = await res.json();
+        const lista = document.getElementById('listaVendas');
+        lista.innerHTML = '';
+        
+        const vendasFiltradas = clienteSelecionado === '' || clienteSelecionado === 'Todos' ? vendas : vendas.filter(v => v.cliente === clienteSelecionado);
+
+        vendasFiltradas.forEach(v => {
+            lista.innerHTML += `
+                <tr>
+                    <td>${new Date(v.data).toLocaleDateString('pt-BR')}</td>
+                    <td><strong>${v.produto}</strong></td>
+                    <td>R$ ${v.valor.toFixed(2)}</td>
+                    <td><span class="badge bg-secondary">${v.formaPagamento || 'Pix'}</span></td>
+                    <td class="text-center">
+                        <button onclick="excluirVenda('${v._id}')" class="btn btn-sm btn-outline-danger"> </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        // Atualiza os cards na tela
+        const pix = vendasFiltradas.reduce((acumulador, v) => v.formaPagamento === 'Pix' ? acumulador + v.valor : acumulador, 0);
+        const dinheiro = vendasFiltradas.reduce((acumulador, v) => v.formaPagamento === 'Dinheiro' ? acumulador + v.valor : acumulador, 0);
+        const cartao = vendasFiltradas.reduce((acumulador, v) => v.formaPagamento.includes('Cartão') ? acumulador + v.valor : acumulador, 0);
+
+        document.getElementById('totalPix').innerText = `R$ ${pix.toFixed(2)}`;
+        document.getElementById('totalDinheiro').innerText = `R$ ${dinheiro.toFixed(2)}`;
+        document.getElementById('totalCartao').innerText = `R$ ${cartao.toFixed(2)}`;
+        document.getElementById('somaTotal').innerText = `R$ ${vendasFiltradas.reduce((acumulador, v) => acumulador + v.valor, 0).toFixed(2)}`;
+
+        // Atualiza o gráfico
+        atualizarGrafico(pix, dinheiro, cartao);
