@@ -13,6 +13,14 @@
         
         <div class="space-y-4">
             <div>
+                <label class="block text-sm font-medium text-gray-700">Cliente</label>
+                <select id="clienteSelecionado" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Carregando clientes...</option>
+                </select>
+                <small class="text-gray-500"><a href="clientes.html" class="text-blue-600 hover:underline">+ Cadastrar novo cliente</a></small>
+            </div>
+
+            <div>
                 <label class="block text-sm font-medium text-gray-700">Produto</label>
                 <input type="text" id="produto" placeholder="Ex: Monitor" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
             </div>
@@ -62,6 +70,22 @@
     <script>
         let vendas = JSON.parse(localStorage.getItem('vendas')) || [];
 
+        // Carregar clientes ao abrir a página
+        async function popularClientes() {
+            const res = await fetch('/clientes');
+            const clientes = await res.json();
+            const select = document.getElementById('clienteSelecionado');
+            
+            select.innerHTML = '<option value="">Selecione um cliente...</option>';
+            
+            clientes.forEach(cliente => {
+                const option = document.createElement('option');
+                option.value = cliente.nome; // Ou cliente._id se quiser ser mais técnico
+                option.textContent = cliente.nome;
+                select.appendChild(option);
+            });
+        }
+
         function atualizarHistorico() {
             const historico = document.getElementById('historicoVendas');
             
@@ -85,12 +109,14 @@
             const produtoInput = document.getElementById('produto');
             const valorInput = document.getElementById('valor');
             const formaPagamentoInput = document.getElementById('formaPagamento');
+            const clienteSelect = document.getElementById('clienteSelecionado');
             const status = document.getElementById('status');
 
             const dadosVenda = {
                 produto: produtoInput.value,
                 valor: valorInput.value,
-                formaPagamento: formaPagamentoInput.value
+                formaPagamento: formaPagamentoInput.value,
+                clienteId: clienteSelect.value
             };
 
             if(!dadosVenda.produto || !dadosVenda.valor) {
@@ -126,6 +152,7 @@
         }
 
         atualizarHistorico();
+        popularClientes();
     </script>
 </body>
 </html>

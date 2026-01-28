@@ -21,6 +21,16 @@ const vendaSchema = new mongoose.Schema({
 
 const Venda = mongoose.model('Venda', vendaSchema);
 
+// Schema de Cliente
+const clienteSchema = new mongoose.Schema({
+  nome: String,
+  whatsapp: String,
+  email: String,
+  dataCadastro: { type: Date, default: Date.now }
+});
+
+const Cliente = mongoose.model('Cliente', clienteSchema);
+
 // Middleware
 app.use(express.json());
 
@@ -78,6 +88,27 @@ app.post('/verificar-senha', (req, res) => {
         res.json({ autorizado: true });
     } else {
         res.json({ autorizado: false });
+    }
+});
+
+// Cadastrar novo cliente
+app.post('/clientes', async (req, res) => {
+    try {
+        const novoCliente = new Cliente(req.body);
+        await novoCliente.save();
+        res.status(201).json({ mensagem: "Cliente cadastrado!" });
+    } catch (erro) {
+        res.status(500).json({ erro: "Erro ao cadastrar cliente" });
+    }
+});
+
+// Listar todos os clientes
+app.get('/clientes', async (req, res) => {
+    try {
+        const clientes = await Cliente.find().sort({ nome: 1 });
+        res.json(clientes);
+    } catch (erro) {
+        res.status(500).json({ erro: "Erro ao buscar clientes" });
     }
 });
 

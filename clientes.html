@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Clientes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .card { border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 12px; }
+        .nav-link.active { background-color: #007bff !important; color: white !important; }
+    </style>
+</head>
+<body>
+
+<div class="container py-5">
+    <ul class="nav nav-pills mb-4">
+        <li class="nav-item"><a class="nav-link" href="index.html">Vendas</a></li>
+        <li class="nav-item"><a class="nav-link active" href="clientes.html">Clientes</a></li>
+        <li class="nav-item"><a class="nav-link" href="relatorio.html">Relatório</a></li>
+    </ul>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card p-4">
+                <h4>Novo Cliente</h4>
+                <form id="formCliente">
+                    <div class="mb-3">
+                        <label>Nome Completo</label>
+                        <input type="text" id="nome" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>WhatsApp</label>
+                        <input type="text" id="whatsapp" class="form-control" placeholder="(00) 00000-0000">
+                    </div>
+                    <div class="mb-3">
+                        <label>E-mail</label>
+                        <input type="email" id="email" class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Cadastrar Cliente</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card p-4">
+                <h4>Clientes Cadastrados</h4>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>WhatsApp</th>
+                                <th>E-mail</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaClientes"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById('formCliente');
+
+    // Salvar Cliente
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const dados = {
+            nome: document.getElementById('nome').value,
+            whatsapp: document.getElementById('whatsapp').value,
+            email: document.getElementById('email').value
+        };
+
+        const res = await fetch('/clientes', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(dados)
+        });
+
+        if(res.ok) {
+            alert("Cliente salvo!");
+            form.reset();
+            carregarClientes();
+        }
+    });
+
+    // Listar Clientes
+    async function carregarClientes() {
+        const res = await fetch('/clientes');
+        const clientes = await res.json();
+        const lista = document.getElementById('listaClientes');
+        lista.innerHTML = '';
+
+        clientes.forEach(c => {
+            lista.innerHTML += `
+                <tr>
+                    <td><strong>${c.nome}</strong></td>
+                    <td>${c.whatsapp || '-'}</td>
+                    <td>${c.email || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary">Ver Histórico</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    carregarClientes();
+</script>
+</body>
+</html>
