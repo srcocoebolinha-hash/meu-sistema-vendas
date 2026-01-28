@@ -26,12 +26,23 @@
     </div>
 
     <div class="card p-3 mb-4">
-        <div class="row align-items-center">
-            <div class="col-md-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
                 <label class="fw-bold">Filtrar por Cliente:</label>
                 <select id="clienteSelecionado" class="form-select" onchange="carregarVendas()">
                     <option value="">Todos os Clientes</option>
                 </select>
+            </div>
+            <div class="col-md-3">
+                <label class="fw-bold">Data Inicial:</label>
+                <input type="date" id="dataInicio" class="form-select" onchange="carregarVendas()">
+            </div>
+            <div class="col-md-3">
+                <label class="fw-bold">Data Final:</label>
+                <input type="date" id="dataFim" class="form-select" onchange="carregarVendas()">
+            </div>
+            <div class="col-md-3 text-end">
+                <button onclick="limparFiltros()" class="btn btn-outline-secondary">Limpar Filtros</button>
             </div>
         </div>
     </div>
@@ -129,13 +140,34 @@
         } catch (e) { console.error("Erro ao carregar clientes"); }
     }
 
+    // Função para resetar as datas e o cliente
+    function limparFiltros() {
+        document.getElementById('clienteSelecionado').value = "";
+        document.getElementById('dataInicio').value = "";
+        document.getElementById('dataFim').value = "";
+        carregarVendas();
+    }
+
     async function carregarVendas() {
         const resVendas = await fetch('/vendas');
         const vendas = await resVendas.json();
-        const filtro = document.getElementById('clienteSelecionado').value;
+        
+        const filtroCliente = document.getElementById('clienteSelecionado').value;
+        const filtroInicio = document.getElementById('dataInicio').value;
+        const filtroFim = document.getElementById('dataFim').value;
+        
         const lista = document.getElementById('listaVendas');
         
-        const vendasFiltradas = filtro === "" ? vendas : vendas.filter(v => v.cliente === filtro);
+        // FILTRAGEM TRIPLA: Cliente + Data Inicial + Data Final
+        const vendasFiltradas = vendas.filter(v => {
+            const dataVenda = new Date(v.data).toISOString().split('T')[0];
+            
+            const bateCliente = filtroCliente === "" || v.cliente === filtroCliente;
+            const bateInicio = filtroInicio === "" || dataVenda >= filtroInicio;
+            const bateFim = filtroFim === "" || dataVenda <= filtroFim;
+            
+            return bateCliente && bateInicio && bateFim;
+        });
 
         let totalGeral = 0, pix = 0, dinheiro = 0, cartao = 0;
         lista.innerHTML = '';
@@ -146,7 +178,6 @@
             else if (v.formaPagamento === 'Dinheiro') dinheiro += v.valor;
             else if (v.formaPagamento && v.formaPagamento.includes('Cartão')) cartao += v.valor;
 
-            // Busca o WhatsApp do cliente para o botão
             const clienteInfo = listaClientesGlobal.find(c => c.nome === v.cliente);
             const whatsapp = clienteInfo ? clienteInfo.whatsapp : '';
 
@@ -175,7 +206,7 @@
 
     function enviarRecibo(whatsapp, nome, produto, valor) {
         const numeroLimpo = whatsapp.replace(/\D/g, '');
-        const mensagem = encodeURIComponent(`Olá ${nome}! Seu recibo:\n*Produto:* ${produto}\n*Valor:* R$ ${valor.toFixed(2)}\n\nObrigado pela preferência!`);
+        const mensagem = encodeURIComponent(`Olá ${nome}! Aqui está seu recibo:\n*Produto:* ${produto}\n*Valor:* R$ ${valor.toFixed(2)}\n\nObrigado pela preferência!`);
         window.open(`https://api.whatsapp.com/send?phone=55${numeroLimpo}&text=${mensagem}`, '_blank');
     }
 
