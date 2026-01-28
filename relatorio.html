@@ -10,16 +10,33 @@
         body { background-color: #f8f9fa; }
         .card { border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 12px; }
         .table thead { background-color: #007bff; color: white; }
+        .table-danger-custom thead { background-color: #dc3545; color: white; }
         .btn-zap { background-color: #25D366; color: white; border: none; }
         .btn-zap:hover { background-color: #128C7E; color: white; }
+        .cursor-pointer { cursor: pointer; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #secaoImprimir, #secaoImprimir * { visibility: visible; }
+            #secaoImprimir {
+                position: absolute; left: 0; top: 0; width: 100%; max-width: 80mm;
+                font-family: 'Courier New', Courier, monospace; color: black; padding: 10px;
+            }
+            .no-print { display: none; }
+        }
+        #secaoImprimir { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>📊 Dashboard de Vendas</h1>
         <div>
+            <h1 id="nomeLojaExibicao" class="mb-0">📊 Dashboard de Vendas</h1>
+            <small class="text-muted cursor-pointer" onclick="alterarNomeLoja()">✏️ Alterar nome da loja</small>
+        </div>
+        <div>
+            <button onclick="registrarSangria()" class="btn btn-warning me-2">💸 Sangria</button>
             <a href="index.html" class="btn btn-outline-primary me-2">Nova Venda</a>
             <button onclick="limparTudo()" class="btn btn-danger">Limpar Tudo</button>
         </div>
@@ -28,17 +45,17 @@
     <div class="card p-3 mb-4">
         <div class="row g-3 align-items-end">
             <div class="col-md-3">
-                <label class="fw-bold">Filtrar por Cliente:</label>
+                <label class="fw-bold">Cliente:</label>
                 <select id="clienteSelecionado" class="form-select" onchange="carregarVendas()">
                     <option value="">Todos os Clientes</option>
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="fw-bold">Data Inicial:</label>
+                <label class="fw-bold">Início:</label>
                 <input type="date" id="dataInicio" class="form-select" onchange="carregarVendas()">
             </div>
             <div class="col-md-3">
-                <label class="fw-bold">Data Final:</label>
+                <label class="fw-bold">Fim:</label>
                 <input type="date" id="dataFim" class="form-select" onchange="carregarVendas()">
             </div>
             <div class="col-md-3 text-end">
@@ -48,35 +65,17 @@
     </div>
 
     <div class="row mb-4 text-center">
-        <div class="col-md-3">
-            <div class="card p-3 border-primary">
-                <h6 class="text-primary">💠 PIX</h6>
-                <h4 id="totalPix">R$ 0,00</h4>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card p-3 border-success">
-                <h6 class="text-success">💵 DINHEIRO</h6>
-                <h4 id="totalDinheiro">R$ 0,00</h4>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card p-3 border-warning">
-                <h6 class="text-warning">💳 CARTÃO</h6>
-                <h4 id="totalCartao">R$ 0,00</h4>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card p-3 bg-primary text-white">
-                <h6>💰 TOTAL GERAL</h6>
-                <h4 id="somaTotal">R$ 0,00</h4>
-            </div>
-        </div>
+        <div class="col-md-2 mb-2"><div class="card p-3 border-primary"><h6 class="text-primary">💠 PIX</h6><h4 id="totalPix">R$ 0,00</h4></div></div>
+        <div class="col-md-2 mb-2"><div class="card p-3 border-success"><h6 class="text-success">💵 DINHEIRO</h6><h4 id="totalDinheiro">R$ 0,00</h4></div></div>
+        <div class="col-md-2 mb-2"><div class="card p-3 border-warning"><h6 class="text-warning">💳 CARTÃO</h6><h4 id="totalCartao">R$ 0,00</h4></div></div>
+        <div class="col-md-3 mb-2"><div class="card p-3 border-danger text-danger"><h6>📉 SANGRIAS (SAÍDAS)</h6><h4 id="totalSangria">R$ 0,00</h4></div></div>
+        <div class="col-md-3 mb-2"><div class="card p-3 bg-primary text-white"><h6>💰 SALDO EM CAIXA</h6><h4 id="somaTotal">R$ 0,00</h4></div></div>
     </div>
 
     <div class="row">
         <div class="col-md-8">
-            <div class="card p-4 h-100">
+            <div class="card p-4 mb-4">
+                <h5 class="mb-3">🛒 Vendas Recentes</h5>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
                         <thead>
@@ -85,7 +84,6 @@
                                 <th>Cliente</th>
                                 <th>Produto</th>
                                 <th>Valor</th>
-                                <th>Pagamento</th>
                                 <th class="text-center">Ações</th>
                             </tr>
                         </thead>
@@ -93,12 +91,46 @@
                     </table>
                 </div>
             </div>
+
+            <div class="card p-4 border-danger">
+                <h5 class="text-danger mb-3">💸 Histórico de Sangrias</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle table-danger-custom">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Motivo</th>
+                                <th>Valor</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaSangrias"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
+
         <div class="col-md-4">
             <div class="card p-4 h-100 text-center">
-                <h5>Distribuição de Vendas</h5>
+                <h5>Distribuição</h5>
                 <canvas id="graficoVendas"></canvas>
             </div>
+        </div>
+    </div>
+</div>
+
+<div id="secaoImprimir">
+    <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px;">
+        <h3 id="printNomeLoja" style="margin: 0; text-transform: uppercase;">LOJA</h3>
+        <p style="font-size: 12px; margin: 0;">Comprovante de Venda</p>
+    </div>
+    <div style="padding: 10px 0; font-size: 14px; line-height: 1.5;">
+        <p style="margin: 2px 0;"><strong>DATA:</strong> <span id="printData"></span></p>
+        <p style="margin: 2px 0;"><strong>CLIENTE:</strong> <span id="printCliente"></span></p>
+        <p style="margin: 2px 0;"><strong>PRODUTO:</strong> <span id="printProduto"></span></p>
+        <p style="margin: 2px 0;"><strong>PAGTO:</strong> <span id="printPagamento"></span></p>
+        <div style="border-top: 1px dashed #000; margin-top: 10px; padding-top: 5px; text-align: right;">
+            <h2 style="margin: 0;">TOTAL R$ <span id="printTotal"></span></h2>
         </div>
     </div>
 </div>
@@ -106,6 +138,22 @@
 <script>
     let meuGrafico;
     let listaClientesGlobal = [];
+
+    function carregarNomeLoja() {
+        const nomeSalvo = localStorage.getItem('nomeDaMinhaLoja');
+        if (nomeSalvo) {
+            document.getElementById('nomeLojaExibicao').innerText = `📊 ${nomeSalvo}`;
+            document.title = `${nomeSalvo} - Dashboard`;
+        }
+    }
+
+    function alterarNomeLoja() {
+        const novoNome = prompt("Qual o nome do seu negócio?");
+        if (novoNome) {
+            localStorage.setItem('nomeDaMinhaLoja', novoNome);
+            carregarNomeLoja();
+        }
+    }
 
     async function verificarEAcesso() {
         const senha = prompt("Senha de acesso:");
@@ -115,7 +163,6 @@
             body: JSON.stringify({ senha })
         });
         const data = await res.json();
-        
         if (data.autorizado) {
             await popularFiltroClientes(); 
             await carregarVendas();         
@@ -131,16 +178,14 @@
             listaClientesGlobal = await res.json();
             const select = document.getElementById('clienteSelecionado');
             select.innerHTML = `<option value="">Todos os Clientes</option>`;
-            listaClientesGlobal.forEach(cliente => {
-                const option = document.createElement('option');
-                option.value = cliente.nome;
-                option.textContent = cliente.nome;
-                select.appendChild(option);
+            listaClientesGlobal.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.nome; opt.textContent = c.nome;
+                select.appendChild(opt);
             });
         } catch (e) { console.error("Erro ao carregar clientes"); }
     }
 
-    // Função para resetar as datas e o cliente
     function limparFiltros() {
         document.getElementById('clienteSelecionado').value = "";
         document.getElementById('dataInicio').value = "";
@@ -148,68 +193,113 @@
         carregarVendas();
     }
 
+    async function registrarSangria() {
+        const motivo = prompt("Motivo da retirada (Ex: Pagamento Fornecedor):");
+        const valor = prompt("Valor da retirada (R$):");
+        if (motivo && valor) {
+            await fetch('/registrar-sangria', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ motivo, valor: parseFloat(valor), data: new Date() })
+            });
+            carregarVendas();
+        }
+    }
+
     async function carregarVendas() {
         const resVendas = await fetch('/vendas');
         const vendas = await resVendas.json();
+        const resSangrias = await fetch('/sangrias');
+        const sangrias = await resSangrias.json();
         
         const filtroCliente = document.getElementById('clienteSelecionado').value;
         const filtroInicio = document.getElementById('dataInicio').value;
         const filtroFim = document.getElementById('dataFim').value;
         
-        const lista = document.getElementById('listaVendas');
-        
-        // FILTRAGEM TRIPLA: Cliente + Data Inicial + Data Final
-        const vendasFiltradas = vendas.filter(v => {
-            const dataVenda = new Date(v.data).toISOString().split('T')[0];
-            
-            const bateCliente = filtroCliente === "" || v.cliente === filtroCliente;
-            const bateInicio = filtroInicio === "" || dataVenda >= filtroInicio;
-            const bateFim = filtroFim === "" || dataVenda <= filtroFim;
-            
-            return bateCliente && bateInicio && bateFim;
+        // Filtrar Vendas
+        const vFiltradas = vendas.filter(v => {
+            const d = new Date(v.data).toISOString().split('T')[0];
+            return (filtroCliente === "" || v.cliente === filtroCliente) &&
+                   (filtroInicio === "" || d >= filtroInicio) &&
+                   (filtroFim === "" || d <= filtroFim);
         });
 
-        let totalGeral = 0, pix = 0, dinheiro = 0, cartao = 0;
-        lista.innerHTML = '';
+        // Filtrar Sangrias (Apenas por data)
+        const sFiltradas = sangrias.filter(s => {
+            const d = new Date(s.data).toISOString().split('T')[0];
+            return (filtroInicio === "" || d >= filtroInicio) && (filtroFim === "" || d <= filtroFim);
+        });
 
-        vendasFiltradas.forEach(v => {
-            totalGeral += v.valor;
+        let totalVendas = 0, pix = 0, dinheiro = 0, cartao = 0;
+        const listaV = document.getElementById('listaVendas');
+        listaV.innerHTML = '';
+
+        vFiltradas.forEach(v => {
+            totalVendas += v.valor;
             if (v.formaPagamento === 'Pix') pix += v.valor;
             else if (v.formaPagamento === 'Dinheiro') dinheiro += v.valor;
-            else if (v.formaPagamento && v.formaPagamento.includes('Cartão')) cartao += v.valor;
+            else if (v.formaPagamento?.includes('Cartão')) cartao += v.valor;
 
-            const clienteInfo = listaClientesGlobal.find(c => c.nome === v.cliente);
-            const whatsapp = clienteInfo ? clienteInfo.whatsapp : '';
+            const cInfo = listaClientesGlobal.find(c => c.nome === v.cliente);
+            const whatsapp = cInfo ? cInfo.whatsapp : '';
 
-            lista.innerHTML += `
+            listaV.innerHTML += `
                 <tr>
                     <td>${new Date(v.data).toLocaleDateString('pt-BR')}</td>
                     <td>${v.cliente || 'S/ Cliente'}</td>
                     <td><strong>${v.produto}</strong></td>
                     <td>R$ ${v.valor.toFixed(2)}</td>
-                    <td><span class="badge bg-secondary">${v.formaPagamento || 'Pix'}</span></td>
                     <td class="text-center">
-                        ${whatsapp ? `<button onclick="enviarRecibo('${whatsapp}', '${v.cliente}', '${v.produto}', ${v.valor})" class="btn btn-sm btn-zap me-1">WhatsApp</button>` : ''}
+                        <button onclick="imprimirCupom('${v.data}', '${v.cliente}', '${v.produto}', ${v.valor}, '${v.formaPagamento}')" class="btn btn-sm btn-outline-dark me-1">🖨️</button>
+                        ${whatsapp ? `<button onclick="enviarRecibo('${whatsapp}', '${v.cliente}', '${v.produto}', ${v.valor})" class="btn btn-sm btn-zap me-1">WA</button>` : ''}
                         <button onclick="excluirVenda('${v._id}')" class="btn btn-sm btn-outline-danger">🗑️</button>
                     </td>
-                </tr>
-            `;
+                </tr>`;
+        });
+
+        let totalS = 0;
+        const listaS = document.getElementById('listaSangrias');
+        listaS.innerHTML = '';
+        sFiltradas.forEach(s => {
+            totalS += s.valor;
+            listaS.innerHTML += `
+                <tr class="table-light">
+                    <td>${new Date(s.data).toLocaleDateString('pt-BR')}</td>
+                    <td>${s.motivo}</td>
+                    <td class="text-danger">R$ ${s.valor.toFixed(2)}</td>
+                    <td class="text-center"><button onclick="excluirSangria('${s._id}')" class="btn btn-sm btn-link text-danger">Excluir</button></td>
+                </tr>`;
         });
 
         document.getElementById('totalPix').innerText = `R$ ${pix.toFixed(2)}`;
         document.getElementById('totalDinheiro').innerText = `R$ ${dinheiro.toFixed(2)}`;
         document.getElementById('totalCartao').innerText = `R$ ${cartao.toFixed(2)}`;
-        document.getElementById('somaTotal').innerText = `R$ ${totalGeral.toFixed(2)}`;
+        document.getElementById('totalSangria').innerText = `R$ ${totalS.toFixed(2)}`;
+        document.getElementById('somaTotal').innerText = `R$ ${(totalVendas - totalS).toFixed(2)}`;
         
         atualizarGrafico(pix, dinheiro, cartao);
     }
 
-    function enviarRecibo(whatsapp, nome, produto, valor) {
-        const numeroLimpo = whatsapp.replace(/\D/g, '');
-        const mensagem = encodeURIComponent(`Olá ${nome}! Aqui está seu recibo:\n*Produto:* ${produto}\n*Valor:* R$ ${valor.toFixed(2)}\n\nObrigado pela preferência!`);
-        window.open(`https://api.whatsapp.com/send?phone=55${numeroLimpo}&text=${mensagem}`, '_blank');
+    async function excluirSangria(id) {
+        if(confirm("Excluir registro de sangria?")) { await fetch(`/sangrias/${id}`, { method: 'DELETE' }); carregarVendas(); }
     }
 
+    // ... (Manter funções imprimirCupom, enviarRecibo, atualizarGrafico, excluirVenda, limparTudo iguais ao anterior) ...
+    function imprimirCupom(data, cliente, produto, valor, pagamento) {
+        const nomeLoja = localStorage.getItem('nomeDaMinhaLoja') || "Minha Loja";
+        document.getElementById('printNomeLoja').innerText = nomeLoja;
+        document.getElementById('printData').innerText = new Date(data).toLocaleDateString('pt-BR');
+        document.getElementById('printCliente').innerText = cliente || 'Consumidor';
+        document.getElementById('printProduto').innerText = produto;
+        document.getElementById('printPagamento').innerText = pagamento;
+        document.getElementById('printTotal').innerText = valor.toFixed(2);
+        window.print();
+    }
+    function enviarRecibo(whatsapp, nome, produto, valor) {
+        const num = whatsapp.replace(/\D/g, '');
+        const msg = encodeURIComponent(`Olá ${nome}! Recibo:\n*Produto:* ${produto}\n*Valor:* R$ ${valor.toFixed(2)}`);
+        window.open(`https://api.whatsapp.com/send?phone=55${num}&text=${msg}`, '_blank');
+    }
     function atualizarGrafico(pix, dinheiro, cartao) {
         const ctx = document.getElementById('graficoVendas').getContext('2d');
         if (meuGrafico) meuGrafico.destroy();
@@ -217,29 +307,22 @@
             type: 'doughnut',
             data: {
                 labels: ['Pix', 'Dinheiro', 'Cartão'],
-                datasets: [{
-                    data: [pix, dinheiro, cartao],
-                    backgroundColor: ['#007bff', '#28a745', '#ffc107']
-                }]
+                datasets: [{ data: [pix, dinheiro, cartao], backgroundColor: ['#007bff', '#28a745', '#ffc107'] }]
             },
             options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
         });
     }
-
     async function excluirVenda(id) {
-        if(confirm("Excluir venda?")) {
-            await fetch(`/vendas/${id}`, { method: 'DELETE' });
-            carregarVendas();
-        }
+        if(confirm("Excluir venda?")) { await fetch(`/vendas/${id}`, { method: 'DELETE' }); carregarVendas(); }
     }
-
     async function limparTudo() {
-        if(confirm("Apagar TODO o histórico?")) {
-            await fetch('/limpar-histórico', { method: 'DELETE' });
-            carregarVendas();
+        if(confirm("Apagar TUDO (Vendas e Sangrias)?")) { 
+            await fetch('/limpar-histórico', { method: 'DELETE' }); 
+            carregarVendas(); 
         }
     }
 
+    carregarNomeLoja();
     verificarEAcesso();
 </script>
 </body>
